@@ -308,6 +308,8 @@ void vec_sum(const double a[restrict], const double b[restrict],
 }
 </code></pre>
 
+	<br>
+
 	<p class="fragment">Accidentally mutating data can be very dangerous. Guess what happens here:</p>
 <span class="fragment">
 <pre><code class="language-c" data-trim data-noescape>
@@ -416,6 +418,21 @@ void get_vertex_coordinates(const double par[restrict static NUM_PARS],
 
 <section>
 	<h3>Do you always take care of the unhappy path?</h3>
+	<p>
+		We always focus on doing something useful and cool.
+		So naturally, our programs follow the happy path
+		of the intended functionality.
+	</p>
+	<p class="fragment">But what about the <em>unhappy path</em>?</p>
+	<p class="fragment">
+		Consider <code>malloc</code>.
+	</p>
+	<ul>
+		<li class="fragment"><p>I/O operations: files, sockets etc.</p></li>
+		<li class="fragment"><p>user input</p></li>
+		<li class="fragment"><p>integer overflows</p></li>
+		<li class="fragment"><p>floating-point weirdness</p></li>
+	</ul>
 </section>
 
 <section>
@@ -424,7 +441,7 @@ void get_vertex_coordinates(const double par[restrict static NUM_PARS],
 	<p class="fragment">The problem is,  C macros are unhygienic:</p>
 <span class="fragment">
 <pre><code class="language-c" data-trim data-noescape>
-#include <stdio.h>
+#include &lt;stdio.h&gt;
 
 #define ADD_TEN(a) for (int i = 0; i < 10; i++) { a++; }
 
