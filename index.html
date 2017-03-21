@@ -272,8 +272,9 @@ foo:
 	<p class="fragment">Takeaway points:</p>
 	<ul>
 		<li class="fragment"><p>Learn C really well (cf. the further reading section)</p></li>
-		<li class="fragment"><p>Be aware of undefined behaviour</p></li>
-		<li class="fragment"><p>When in doubt, read assembly</p></li>
+		<li class="fragment"><p>Look out for undefined behaviour</p></li>
+		<li class="fragment"><p>Learn about the specifics of your target platform</p></li>
+		<li class="fragment"><p>Learn about the implementation details of your toolchain</p></li>
 	</ul>
 </section>
 </p></li>
@@ -400,12 +401,16 @@ void get_vertex_coordinates(const double par[restrict static NUM_PARS],
 </code></pre>
 </span>
 	<p class="fragment">
-		Slowly you will notice that you have a lot of small,
-		specialised functions that are composed together at one central place,
-		where all the impure action takes place.
+		When coding with this mindset, you will slowly notice that you have a lot of small,
+		specialised pure functions that ‘do some work.’
 	</p>
 	<p class="fragment">
-		Formally, this is the ‘Functional core—Imperative shell’ architecture.
+		They are composed and coordinated together at few isolated, compact places,
+		where all the impure actions and mutations happen.
+	</p>
+	<p class="fragment">
+		This is the ‘Functional core—Imperative shell’ architecture which was
+		first presented by Gary Bernhardt in 2012.
 	</p>
 </section>
 
@@ -419,25 +424,115 @@ void get_vertex_coordinates(const double par[restrict static NUM_PARS],
 <section>
 	<h3>Do you always take care of the unhappy path?</h3>
 	<p>
+		The metaphor of happy and unhappy paths was introduced in 2014 by Scott Wlaschin
+		in his talk about railway-oriented programming in F#.
+	</p>
+	<p style="text-align: center; border-width: 0px;">
+		<!-- https://pixabay.com/en/vias-train-railway-via-trains-784139/ -->
+		<img style="border-style: none; width: 60%;" src="images/railway_junction.jpg" alt="Railway junction">
+	</p>
+	<p class="fragment">
+		Unfortunately, these very elegant ideas cannot be directly applied to C
+		(while you can roughly approximate monads in C, it doesn't mean you should).
+	</p>
+	<p class="fragment">
+		However, we can use the notion of the unhappy path as an inspiration
+		for better and robuster code!
+	</p>
+</section>
+
+<section>
+	<h3>Do you always take care of the unhappy path?</h3>
+	<p>
 		We always focus on doing something useful and cool.
 		So naturally, our programs follow the happy path
 		of the intended functionality.
 	</p>
-	<p class="fragment">But what about the <em>unhappy path</em>?</p>
-	<p class="fragment">
-		Consider <code>malloc</code>.
-	</p>
+	<p class="fragment">But how should we handle the <em>unhappy path</em>?</p>
+	<br>
+	<p class="fragment">For instance, unhappy paths arise...</p>
 	<ul>
-		<li class="fragment"><p>I/O operations: files, sockets etc.</p></li>
-		<li class="fragment"><p>user input</p></li>
-		<li class="fragment"><p>integer overflows</p></li>
-		<li class="fragment"><p>floating-point weirdness</p></li>
+		<li class="fragment"><p>
+			when you allocate resources, e.g. memory, or perform I/O operations
+		</p></li>
+		<li class="fragment"><p>when you process user input</p></li>
+		<li class="fragment"><p>due to integer overflows or floating-point weirdness</p></li>
+		<li class="fragment"><p>when using library functions</p></li>
+		<li class="fragment"><p>...and in many other cases</p></li>
 	</ul>
 </section>
 
 <section>
+	<h3>Do you always take care of the unhappy path?</h3>
+	<p>For instance, consider this snippet where we allocate a dynamic array:</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+int *arr = malloc(len);
+// Do something with `arr`
+free(arr);
+return 0;
+</code></pre>
+</span>
+	<p class="fragment">
+		When <code>len</code> is small, we're on the happy path and everything's ok.
+		But what if we don't have enough memory?
+		Then we're on the unhappy path we've not thought about:
+		<code>arr</code> is a null pointer and all operations with it are... undefined behaviour.
+	</p>
+	<p class="fragment">Or, in most cases,</p>
+<span class="fragment">
+<pre><code class="language-bash" data-trim data-noescape>
+Segmentation fault (core dumped)
+</code></pre>
+</span>
+	<p class="fragment">So let's take care of the unhappy path:</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+int *arr = malloc(len);
+if (arr == NULL) { printf("Could not allocate!\n"); return 1; }
+// Do something with `arr`
+free(arr);
+return 0;
+</code></pre>
+</span>
+</section>
+
+<section>
+	<h3>Do you always take care of the unhappy path?</h3>
+	<p>Here's another example, Euclidean vector norm:</p>
+<pre><code class="language-c" data-trim data-noescape>
+#include &lt;stddef.h&gt;
+#include &lt;math.h&gt;
+
+double euclidean_norm(const double x[restrict], const size_t len) {
+    double acc = 0.0;
+    for (size_t i = 0; i < len; i++) { acc += x[i]*x[i]; }
+    return sqrt(acc);
+}
+</code></pre>
+
+<span class="fragment">
+<p>Happy path:</p>
+<pre><code class="language-c" data-trim data-noescape>
+const double foo[2] = {3.0, 4.0};
+printf("%f\n", euclidean_norm(foo, 2)); // 5.000000
+</code></pre>
+</span>
+
+<span class="fragment">
+<p>Unhappy path:</p>
+<pre><code class="language-c" data-trim data-noescape>
+const double bar[2] = {3.0e200, 4.0e200}; // `double` goes up to 1.0e308
+printf("%f\n", euclidean_norm(bar, 2)); // inf
+</code></pre>
+</span>
+
+	<p class="fragment">Home assignment: How can we take care of this unhappy path?</p>
+</section>
+
+<section>
 	<h3>Do you restrict your use of macros?</h3>
-	<p>I use macros only for program-wide configuration and literals.</p>
+	<p>I recommend using macros only for program-wide configuration and literals.</p>
 	<p class="fragment">The problem is,  C macros are unhygienic:</p>
 <span class="fragment">
 <pre><code class="language-c" data-trim data-noescape>
@@ -504,9 +599,9 @@ int main(void) {
 	<h3>Do you have comprehensive tests and run them after each commit?</h3>
 	<p>Tests you <em>must</em> have:</p>
 	<ul>
-		<li class="fragment"><p>unit tests</p></li>
+		<li class="fragment"><p>unit tests (for the functional core)</p></li>
+		<li class="fragment"><p>integration tests (for the imperative shell)</p></li>
 		<li class="fragment"><p>regression tests against a high-level language implementation</p></li>
-		<li class="fragment"><p>integration tests</p></li>
 	</ul>
 	<p class="fragment">
 		I argue that if you write a compact and specialised piece of software (e.g. controller or estimator),
@@ -574,7 +669,7 @@ int main(void) {
 	<h3>Conclusion</h3>
 	<p class="fragment">If you only remember three things about this talk, remember these:</p>
 	<ul>
-		<li class="fragment"><p>Avoid using C, if you can.</p></li>
+		<li class="fragment"><p>Avoid using C if you can.</p></li>
 		<li class="fragment"><p>Question your assumptions and knowledge.</p></li>
 		<li class="fragment"><p>Always sacrifice performance for safety. Always.</p></li>
 	</ul>
@@ -589,6 +684,12 @@ int main(void) {
 		Proceedings of the 34th International Conference on Software Engineering (ICSE), Zurich, Switzerland, June 2012.
 		<a href="https://www.cs.utah.edu/~regehr/papers/overflow12.pdf">Full text.</a>
 	</p>
+
+	<!--
+	https://fsharpforfunandprofit.com/rop/
+	https://www.destroyallsoftware.com/talks/boundaries
+	https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell
+	-->
 
 </section>
 
