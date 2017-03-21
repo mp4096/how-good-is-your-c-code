@@ -152,6 +152,208 @@ MIT License
 </section>
 
 <section>
+	<h3>Do you really know C, especially its undefined behaviour?</h3>
+	<p>
+		C has deceptively simple syntax and semantics.
+		In reality, it has vast swathes of <em>undefined behaviour</em>,
+		which means that compiler may do literally anything.
+	</p>
+	<p class="fragment">Few examples:</p>
+	<ul>
+		<li class="fragment"><p>Violating the strict aliasing rule</p></li>
+		<li class="fragment"><p>Dereferencing a <code>NULL</code> pointer</p></li>
+		<li class="fragment"><p>Use of uninitialized variables and pointers</p></li>
+		<li class="fragment"><p>Out of bounds array accesses</p></li>
+		<li class="fragment"><p>Signed integer overflow</p></li>
+	</ul>
+
+	<p class="fragment">
+		Fun fact: The word ‘undefined’ occurs 184 times in the C99 standard.
+		To put it into perspective, the word ‘pointer’ occurs 637 times.
+	</p>
+</section>
+
+<section>
+	<h3>Do you really know C, especially its undefined behaviour?</h3>
+	<p>Signed integer overflow: An example from Dietz et. al.:</p>
+<pre><code class="lang-c" data-trim data-noescape>
+#include &lt;stdio.h&gt;
+#include &lt;limits.h&gt;
+
+int foo(int x) {
+    return (x + 1) > x;
+}
+
+int main(void) {
+    printf("Literal:       %d\n", (INT_MAX + 1) > INT_MAX);
+    printf("Function call: %d\n", foo(INT_MAX));
+    return 0;
+}
+</code></pre>
+
+	<p class="fragment">What would you expect?</p>
+
+</section>
+
+<section>
+	<h3>Do you really know C, especially its undefined behaviour?</h3>
+	<p>Let's try <code>clang</code>:</p>
+
+<span class="fragment">
+<pre><code class="language-sh" data-trim data-noescape>
+$ clang -O0 signed_int_overflow.c -o a.out &amp;&amp; ./a.out
+Literal:       0
+Function call: 0
+$ clang -O1 signed_int_overflow.c -o a.out &amp;&amp; ./a.out
+Literal:       0
+Function call: 1
+</code></pre>
+</span>
+
+<p class="fragment">What about <code>gcc</code>?</p>
+<span class="fragment">
+<pre><code class="language-bash" data-trim data-noescape>
+$ gcc -O0 signed_int_overflow.c -o a.out &amp;&amp; ./a.out
+Literal:       0
+Function call: 0
+$ gcc -O1 signed_int_overflow.c -o a.out &amp;&amp; ./a.out
+Literal:       0
+Function call: 0
+$ gcc -O2 signed_int_overflow.c -o a.out &amp;&amp; ./a.out
+Literal:       0
+Function call: 1
+</code></pre>
+</span>
+</section>
+
+<section>
+	<h3>Do you really know C, especially its undefined behaviour?</h3>
+	<p><code>$ clang -O0 -S -masm=intel signed_int_overflow.c</code></p>
+<span class="fragment">
+<pre><code class="x86asm" data-trim data-noescape>
+foo:
+	push	rbp
+	mov	rbp, rsp
+	mov	dword ptr [rbp - 4], edi
+	mov	edi, dword ptr [rbp - 4]
+	add	edi, 1
+	cmp	edi, dword ptr [rbp - 4]
+	setg	al
+	and	al, 1
+	movzx	eax, al
+	pop	rbp
+	ret
+</code></pre>
+</span>
+
+	<p class="fragment"><code>$ clang -O1 -S -masm=intel signed_int_overflow.c</code></p>
+<span class="fragment">
+<pre><code class="x86asm" data-trim data-noescape>
+foo:
+	mov	eax, 1
+	ret
+</code></pre>
+</span>
+</section>
+
+<section>
+	<h3>Do you really know C, especially its undefined behaviour?</h3>
+	<p>So why do we tolerate undefined behaviour?</p>
+	<p class="fragment">
+		Undefined behaviour is not bad <em>per se</em>.
+		Actually, it allows quite a lot of optimisations!
+	</p>
+	<p class="fragment">
+		However, it is also a problem.
+		A lot of codebases that compiled perfectly a couple of years ago get broken
+		as compilers perform more and more aggressive optimisations.
+	</p>
+	<br>
+	<p class="fragment">Takeaway points:</p>
+	<ul>
+		<li class="fragment"><p>Learn C really well (cf. the further reading section)</p></li>
+		<li class="fragment"><p>Be aware of undefined behaviour</p></li>
+		<li class="fragment"><p>When in doubt, read assembly</p></li>
+	</ul>
+</section>
+</p></li>
+
+<section>
+	<h3>Is your data immutable by default?</h3>
+	<p>Declaring all <code>const</code> variables as such has been a conventional wisdom for ages.</p>
+	<ul>
+		<li class="fragment"><p>Of course one cannot (and should not try to) achieve complete immutability in C!</p></li>
+		<li class="fragment"><p>Indeed, in-place computations are often critical for high-performance code.</p></li>
+		<li class="fragment"><p>
+			Using mutable variables and data structures is ok, but it is a design choice that should be justified and documented.
+		</p></li>
+	</ul>
+	<p class="fragment">Why bother?</p>
+	<ul>
+		<li class="fragment"><p>Obviously, <code>const</code> protects (to some degree) against accidental mutations.</p></li>
+		<li class="fragment"><p>Immutable data is thread-safe.</p></li>
+		<li class="fragment"><p>It is an important information about code invariants.</p></li>
+	</ul>
+</section>
+
+<section>
+	<h3>Is your data immutable by default?</h3>
+	<p>
+		E.g. here, <code>const</code> helps us greatly to undestand the workings of <code>vec_sum</code>:
+	</p>
+<pre><code class="language-c" data-trim data-noescape>
+void vec_sum(const double a[restrict], const double b[restrict],
+             double res[restrict], const size_t len) {
+    for (size_t i = 0; i < len; i++) { res[i] = a[i] + b[i]; }
+}
+</code></pre>
+
+	<p class="fragment">Accidentally mutating data can be very dangerous. Guess what happens here:</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+int main(void) {
+    char *foo = "Hello world!";
+    foo[1] = 'a'; // this is an accident
+    return 0;
+}
+</code></pre>
+</span>
+<p class="fragment">
+	Yay, a segfault! Declaring
+</p>
+<pre class="fragment"><code class="language-c" data-trim data-noescape>
+const char *foo = "Hello world!";
+</code></pre>
+<p class="fragment">
+	would have resulted in a compilation error.
+</p>
+
+
+</section>
+
+
+
+
+
+
+
+<section>
+	<h3>Is your state explicit?</h3>
+</section>
+
+<section>
+	<h3>Are as many functions pure as possible?</h3>
+</section>
+
+<section>
+	<h3>Do you have comprehensive tests and run them after each commit?</h3>
+</section>
+
+<section>
+	<h3>Is your data immutable by default?</h3>
+</section>
+
+<section>
 	<h3>8 steps to better maintainability</h3>
 	<ol>
 		<li class="fragment"><p>Do you know exactly why and where you need C?</p></li>
@@ -190,6 +392,14 @@ MIT License
 
 <section>
 	<h3>Further reading</h3>
+
+	<p style="font-size: 60%">
+		Will Dietz, Peng Li, John Regehr, and Vikram Adve.
+		Understanding integer overflow in C/C++.
+		Proceedings of the 34th International Conference on Software Engineering (ICSE), Zurich, Switzerland, June 2012.
+		<a href="https://www.cs.utah.edu/~regehr/papers/overflow12.pdf">Full text.</a>
+	</p>
+
 </section>
 
 </div>
