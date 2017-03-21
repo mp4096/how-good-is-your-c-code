@@ -143,10 +143,10 @@ MIT License
 		<li class="fragment"><p>Is your data immutable by default?</p></li>
 		<li class="fragment"><p>Is your state explicit?</p></li>
 		<li class="fragment"><p>Are as many functions pure as possible?</p></li>
-		<li class="fragment"><p>Do you have comprehensive tests and run them after each commit?</p></li>
-		<li class="fragment"><p>??? - Do you have as few dynamic memory allocations as possible?</p></li>
-		<li class="fragment"><p>Do you restrict your use of macros?</p></li>
 		<li class="fragment"><p>Do you always take care of the unhappy path?</p></li>
+		<li class="fragment"><p>Do you restrict your use of macros?</p></li>
+		<li class="fragment"><p>Do you always have your linter on?</p></li>
+		<li class="fragment"><p>Do you have comprehensive tests and run them after each commit?</p></li>
 		<li class="fragment"><p>Do you sacrifice performance for safety?</p></li>
 	</ol>
 </section>
@@ -318,39 +318,212 @@ int main(void) {
 }
 </code></pre>
 </span>
-<p class="fragment">
-	Yay, a segfault! Declaring
-</p>
+	<p class="fragment">Yay, a segfault! Declaring</p>
 <pre class="fragment"><code class="language-c" data-trim data-noescape>
 const char *foo = "Hello world!";
 </code></pre>
-<p class="fragment">
-	would have resulted in a compilation error.
-</p>
-
-
+	<p class="fragment">would have resulted in a compilation error.</p>
 </section>
-
-
-
-
-
-
 
 <section>
 	<h3>Is your state explicit?</h3>
+	<p>
+		It is quite probable that your problem is inherently stateful.
+		So instead of trying to smash the state (this will not work) or hiding it,
+		make it explicit!
+	</p>
+	<p class="fragment">
+		Programs with explicit state are much easier to reason about
+		and much easier to test.
+	</p>
+	<span class="fragment">
+		<p>However:</p>
+		<blockquote>
+			‘There are two ways of constructing a software design:
+			One way is to make it so simple that there are obviously no deficiencies,
+			and the other way is to make it so complicated that there are no obvious deficiencies.
+			The first method is far more difficult.’
+			<br>
+
+			<div style="text-align:right; font-size: 60%;">
+				Tony Hoare, 1980 Turing Award Lecture
+			</div>
+		</blockquote>
+	</span>
+	<p class="fragment">
+		Making state explicit is not a coding skill.
+		It is a question of mentality, of your design process and the way you think about problems.
+	</p>
 </section>
 
 <section>
 	<h3>Are as many functions pure as possible?</h3>
+	<p>We call a function <em>pure</em>, if...</p>
+	<ul>
+		<li class="fragment"><p>it always evaluates to the same result value given the same argument values and</p></li>
+		<li class="fragment"><p>evaluation of the result does not cause any side effects or output, such as mutation.</p></li>
+	</ul>
+	<p class="fragment">Definitely not pure:</p>
+	<ul>
+		<li class="fragment"><p>accessing and mutating global state, e.g. statically allocated arrays</p></li>
+		<li class="fragment"><p>performing I/O operations</p></li>
+		<li class="fragment"><p>nondeterministic computations, e.g. using pseudorandom values</p></li>
+	</ul>
+	<br>
+	<p class="fragment">
+		The advantages of purity sound familiar:
+		Pure functions are much easier to reason about and much easier to test.
+	</p>
+</section>
+
+<section>
+	<h3>Are as many functions pure as possible?</h3>
+	<p class="fragment">
+		However, pureness is impossible to achieve in practice in C.
+	</p>
+	<p class="fragment">
+		We must settle for a reasonable approximation for it,
+		e.g. a function might be considered quasi-pure if all its side effects
+		are encoded in the function signature:
+	</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+/// \brief Get vertex coordinates for given model parameters
+/// \param [in] par model parameters \f$\mathbf{x}\f$
+/// \param [out] vertices_x vertex x-axis coordinates
+/// \param [out] vertices_y vertex y-axis coordinates
+void get_vertex_coordinates(const double par[restrict static NUM_PARS],
+                            double vertices_x[restrict static NUM_VERTICES],
+                            double vertices_y[restrict static NUM_VERTICES]);
+</code></pre>
+</span>
+	<p class="fragment">
+		Slowly you will notice that you have a lot of small,
+		specialised functions that are composed together at one central place,
+		where all the impure action takes place.
+	</p>
+	<p class="fragment">
+		Formally, this is the ‘Functional core—Imperative shell’ architecture.
+	</p>
+</section>
+
+<section>
+	<h3>Are as many functions pure as possible?</h3>
+	<p style="text-align: center; border-width: 0px;">
+		<img style="border-style: none; border: none; box-shadow: none;" src="images/fc-is.svg" alt="Functional core, imperative shell architecture">
+	</p>
+</section>
+
+<section>
+	<h3>Do you always take care of the unhappy path?</h3>
+</section>
+
+<section>
+	<h3>Do you restrict your use of macros?</h3>
+	<p>I use macros only for program-wide configuration and literals.</p>
+	<p class="fragment">The problem is,  C macros are unhygienic:</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+#include <stdio.h>
+
+#define ADD_TEN(a) for (int i = 0; i < 10; i++) { a++; }
+
+int main(void) {
+    int i = 42, a = 42;
+    ADD_TEN(i)
+    ADD_TEN(a)
+    printf("i = %d, a = %d\n", i, a);
+    return 0;
+}
+</code></pre>
+</span>
+	<p class="fragment">evaluates to this:</p>
+<span class="fragment">
+<pre><code class="language-bash" data-trim data-noescape>
+i = 42, a = 52
+</code></pre>
+</span>
+</section>
+
+<section>
+	<h3>Do you restrict your use of macros?</h3>
+	<p>What happened here? Pro tip: The <code>-E</code> flag tells compiler to expands macros and stop:</p>
+	<p class="fragment"><code>clang -E macros_hell.c -o macros_hell_expanded.c</code></p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+int main(void) {
+    int i = 42, a = 42;
+    for (int i = 0; i < 10; i++) { i++; }
+    for (int i = 0; i < 10; i++) { a++; }
+    printf("i = %d, a = %d\n", i, a);
+    return 0;
+}
+</code></pre>
+</span>
+	<p class="fragment">
+		The variable <code>i</code> was shadowed by the one introduced
+		in the macro <code>for</code>-loop scope!
+	</p>
+	<p class="fragment">
+		In such cases, you should use <code>inline</code>-d functions.
+		Mark them with <code>always_inline</code> or <code>hot</code>
+		attributes if you're paranoid about performance.
+	</p>
+</section>
+
+<section>
+	<h3>Do you always have your linter on?</h3>
+	<p>You really should. Here is <code>linter-clang</code> in Atom:</p>
+	<p style="text-align: center; border-width: 0px;">
+		<img style="border-style: none; width: 60%;" src="images/linter.png" alt="Linter in Atom">
+	</p>
+	<p class="fragment">
+		And do not forget to use <em>all</em> the flags:
+		<code>-Weverything</code> in <code>clang</code>.
+	</p>
 </section>
 
 <section>
 	<h3>Do you have comprehensive tests and run them after each commit?</h3>
+	<p>Tests you <em>must</em> have:</p>
+	<ul>
+		<li class="fragment"><p>unit tests</p></li>
+		<li class="fragment"><p>regression tests against a high-level language implementation</p></li>
+		<li class="fragment"><p>integration tests</p></li>
+	</ul>
+	<p class="fragment">
+		I argue that if you write a compact and specialised piece of software (e.g. controller or estimator),
+		a branch coverage of 100% is a must.
+	</p>
+	<p class="fragment">
+		Furthermore, you should think about instrumentalising your code with
+		<code>valgrind</code> and <code>AddressSanitizer</code>
+		if you use dynamic memory allocation.
+	</p>
 </section>
 
 <section>
-	<h3>Is your data immutable by default?</h3>
+	<h3>Do you have comprehensive tests and run them after each commit?</h3>
+	<p>Tests you <em>should</em> have:</p>
+	<ul>
+		<li class="fragment"><p>property-based tests</p></li>
+		<li class="fragment"><p>fuzz tests (if applicable)</p></li>
+		<li class="fragment"><p>mutation tests</p></li>
+	</ul>
+	<br>
+	<p class="fragment">
+		You should also think about running tests with different compilers,
+		e.g. with both  <code>gcc</code> and <code>clang</code>.
+	</p>
+	<p class="fragment">
+		And yes, ‘after each commit’ absolutely means after each commit!
+		Use TravisCI or roll your own CI.
+		Even better, use pre-commit <code>git</code> hooks.
+	</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
 </section>
 
 <section>
