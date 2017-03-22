@@ -131,8 +131,31 @@ MIT License
 		<li class="fragment"><p>7 questions about performance</p></li>
 	</ul>
 	<p class="fragment">
-		For each <em>yes</em>, you get 1 point. A score of 24 is perfect, 23 to 20 is acceptable
-		and if you have fewer than 20 points you should probably review your design choices and processes.
+		For each <em>yes</em>, you get 1 point. A score of 24 is perfect, 23 to 16 is acceptable
+		and if you have fewer than 15 points you should probably review your design choices and processes.
+	</p>
+</section>
+
+<section>
+	<h3>The 9-8-7 test</h3>
+	<p>Antipitch:</p>
+	<ul>
+		<li class="fragment"><p>
+			Sticking to some (if not most) of these rules will cause you additional overhead.
+			But do you want to take risks during C development?
+			Write a prototype if you want to move fast and break things.
+		</p></li>
+		<li class="fragment"><p>
+			Some of these rules are more about your development mindset,
+			they will not help you immediately.
+			You should rather learn and improve over time.
+		</p></li>
+	</ul>
+	<br>
+	<p class="fragment">
+		Avoid cargo cult!
+		Ultimately, there is only one way to improve: Make mistakes (a lot of them),
+		fail hard and learn from these failures.
 	</p>
 </section>
 
@@ -299,20 +322,8 @@ foo:
 
 <section>
 	<h3>Is your data immutable by default?</h3>
-	<p>
-		E.g. here, <code>const</code> helps us greatly to undestand the workings of <code>vec_sum</code>:
-	</p>
-<pre><code class="language-c" data-trim data-noescape>
-void vec_sum(const double a[restrict], const double b[restrict],
-             double res[restrict], const size_t len) {
-    for (size_t i = 0; i < len; i++) { res[i] = a[i] + b[i]; }
-}
-</code></pre>
 
-	<br>
-
-	<p class="fragment">Accidentally mutating data can be very dangerous. Guess what happens here:</p>
-<span class="fragment">
+	<p>Accidentally mutating data can be very dangerous. Guess what happens here:</p>
 <pre><code class="language-c" data-trim data-noescape>
 int main(void) {
     char *foo = "Hello world!";
@@ -320,12 +331,26 @@ int main(void) {
     return 0;
 }
 </code></pre>
-</span>
 	<p class="fragment">Yay, a segfault! Declaring</p>
 <pre class="fragment"><code class="language-c" data-trim data-noescape>
 const char *foo = "Hello world!";
 </code></pre>
 	<p class="fragment">would have resulted in a compilation error.</p>
+
+	<br>
+
+	<p class="fragment">
+		Another example. Here, <code>const</code> helps us to undestand
+		the workings of <code>vec_sum</code>:
+	</p>
+<span class="fragment">
+<pre><code class="language-c" data-trim data-noescape>
+void vec_sum(const double a[restrict], const double b[restrict],
+             double res[restrict], const size_t len) {
+    for (size_t i = 0; i < len; i++) { res[i] = a[i] + b[i]; }
+}
+</code></pre>
+</span>
 </section>
 
 <section>
