@@ -65,7 +65,7 @@ MIT License
 		<li><p><a style="color:#222" href="#/14">8 steps to better maintainability</a></p></li>
 		<li><p><a style="color:#222" href="#/22">7 steps to better performance</a></p></li>
 		<li><p><a style="color:#222" href="#/29">Conclusion</a></p></li>
-		<li><p><a style="color:#222" href="#/30">Further reading</a></p></li>
+		<!-- <li><p><a style="color:#222" href="#/30">Further reading</a></p></li> -->
 	</ul>
 </section>
 
@@ -88,9 +88,9 @@ MIT License
 	</p>
 	<ul>
 		<li class="fragment"><p>write bare-metal C;</p></li>
-		<li class="fragment"><p>
+		<!-- <li class="fragment"><p>
 			want to write a larger piece of software (did anybody say <code>git</code>?);
-		</p></li>
+		</p></li> -->
 		<li class="fragment"><p>target a lot of platforms.</p></li>
 	</ul>
 </section>
@@ -103,8 +103,8 @@ MIT License
 	<p class="fragment">Standards:</p>
 	<ul>
 		<li class="fragment"><p>1978: K&amp;R C</p></li>
-		<li class="fragment"><p>1990: ANSI C <em>aka</em> C89 <em>aka</em> C90</p></li>
-		<li class="fragment"><p>1999: C99</p></li>
+		<li class="fragment"><p>1989/1990: ANSI C <em>aka</em> C89 <em>aka</em> C90</p></li>
+		<li class="fragment"><p>1999: C99 (used for all examples in this talk)</p></li>
 		<li class="fragment"><p>2008: Embedded C</p></li>
 		<li class="fragment"><p>2011: C11</p></li>
 	</ul>
@@ -142,6 +142,7 @@ MIT License
 	<ul>
 		<li class="fragment"><p>
 			Sticking to some (if not most) of these rules will cause you additional overhead.
+			<br>
 			But do you want to take risks during C development?
 			Write a prototype if you want to move fast and break things.
 		</p></li>
@@ -152,8 +153,8 @@ MIT License
 		</p></li>
 	</ul>
 	<br>
+	<p class="fragment">Avoid cargo cult!</p>
 	<p class="fragment">
-		Avoid cargo cult!
 		Ultimately, there is only one way to improve: Make mistakes (a lot of them),
 		fail hard and learn from these failures.
 	</p>
@@ -181,7 +182,7 @@ MIT License
 		In reality, it has vast swathes of <em>undefined behaviour</em>,
 		which means that compiler may do literally anything.
 	</p>
-	<p class="fragment">Few examples:</p>
+	<p class="fragment">Few examples of undefined behaviour:</p>
 	<ul>
 		<li class="fragment"><p>Violating the strict aliasing rule</p></li>
 		<li class="fragment"><p>Dereferencing a <code>NULL</code> pointer</p></li>
@@ -547,7 +548,7 @@ printf("%f\n", euclidean_norm(foo, 2)); // 5.000000
 <span class="fragment">
 <p>Unhappy path:</p>
 <pre><code class="language-c" data-trim data-noescape>
-const double bar[2] = {3.0e200, 4.0e200}; // `double` goes up to 1.0e308
+const double bar[2] = {3.0e200, 4.0e200}; // `double` goes up to 1.0e308 👌
 printf("%f\n", euclidean_norm(bar, 2)); // inf
 </code></pre>
 </span>
@@ -668,6 +669,202 @@ int main(void) {
 		e.g. type punning, floating-point hacking,
 		sharing and mutating statically allocated memory etc.
 	</p>
+	<p class="fragment">
+		Each piece of software should have a <em>performance budget</em>,
+		not an ‘as fast as possible’ requirement.
+	</p>
+	<p class="fragment">
+		Nowadays, we have quite a lot of breathing room due to better hardware.
+		And if you absolutely cannot satisfy the performance budget,
+		you have much better alternatives than dirty performance hacking:
+	</p>
+	<ul>
+		<li class="fragment"><p>negotiate a more generous performance budget with your stakeholders</p></li>
+		<li class="fragment"><p>use better (often more specialised) algorithms or data structures</p></li>
+	</ul>
+	<p class="fragment">
+		Remember that the most significant improvements can be made only by
+		changing things at the top and not at the lowest level.
+	</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Ariane 5 Flight 501</p>
+	<div style="text-align:center;border-width: 0px">
+		<iframe width="560" height="315" src="https://www.youtube.com/embed/PK_yguLapgA?start=77&end=105&rel=0&iv_load_policy=3" frameborder="0" allowfullscreen></iframe>
+	</div>
+	<p class="fragment">Consequences: US$370 million loss</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<span>
+		<blockquote>
+			‘In the failure scenario, the primary technical causes are the Operand Error
+			when converting the horizontal bias variable BH,
+			and the lack of protection of this conversion which caused the SRI computer to stop.
+			<br>
+			It has been stated to the Board that not all the conversions were protected
+			because a maximum workload target of 80% had been set for the SRI computer.’
+			<br>
+
+			<div style="text-align:right; font-size: 60%;">
+				Flight 501 failure report, 1996
+			</div>
+		</blockquote>
+	</span>
+	<p class="fragment">
+		In this example the developers did nothing <em>extraordinary</em> wrong.
+		They <em>just</em> omitted some safety checks customary in space engineering.
+		And they probably didn't have a chance to alleviate the workload requirement.
+	</p>
+	<p class="fragment">
+		But can <em>you</em> justify this safety trade-off in <em>your</em> use case?
+	</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Just a reminder:</p>
+	<ul>
+		<li class="fragment"><p>
+			1985–1987: Therac-25 accidents due to faulty software (race condition) in radiaton therapy machines.
+			Six people have received massive radiation overdoses, three of them died.
+		</p></li>
+		<li class="fragment"><p>
+			2012–2014: Heartbleed bug, a buffer overrun (typical for C) in OpenSSL.
+			Estimated US$500 million loss.
+		</p></li>
+		<li class="fragment"><p>
+			February 2017: Cloudbleed bug due to a buffer overrun in a C email parser used by Cloudflare.
+			Leaked sensitive data in plaintext (passwords, private data etc.).
+			Estimated loss unknown, ca. 2 million websites affected.
+		</p></li>
+	</ul>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Another viewpoint:</p>
+	<p class="fragment">
+		If you want performance, why don't you just trust the compiler?
+	</p>
+	<ul>
+		<li class="fragment"><p>
+			Modern compilers are <em>much</em> better at optimising than an average programmer.
+		</p></li>
+		<li class="fragment"><p>
+			Dirty hacks actually make optimisations more difficult for the compiler.
+		</p></li>
+	</ul>
+	<br>
+	<p class="fragment">
+		Anecdotal example:
+		A mechanical engineer heard that branching is very expensive.
+		This absolutely correct, especially in case of branch misprediction.
+	</p>
+	<p class="fragment">
+		As a result, he tried to write branchless conditionals everywhere he could.
+	</p>
+	<p class="fragment">But does it make sense? Let's investigate.</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Here's an example:</p>
+<pre><code class="language-c" data-trim data-noescape>
+int branchful(const int a) {
+    if (a > 0) {
+        return 2;
+    } else {
+        return 1;
+    }
+}
+
+int branchless(const int a) {
+    return ((int) (a > 0))*1 + 1;
+}
+</code></pre>
+	<p class="fragment">We compile this snippet with different optimisation levels:</p>
+	<p class="fragment"><code>clang -std=c99 $(OPT_LEVEL) -masm=intel -S branchless_if.c</code></p>
+	<p class="fragment">
+		At which optimisation level will these two functions be processed into identical assembly?
+	</p><p class="fragment"><code>-O1</code></p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Compiled with <code>-O0</code></p>
+<pre><code class="language-x86asm" data-trim data-noescape>
+branchful:
+	push	rbp
+	mov	rbp, rsp
+	mov	dword ptr [rbp - 8], edi
+	cmp	dword ptr [rbp - 8], 0
+	jle	.LBB0_2
+	mov	dword ptr [rbp - 4], 2
+	jmp	.LBB0_3
+.LBB0_2:
+	mov	dword ptr [rbp - 4], 1
+.LBB0_3:
+	mov	eax, dword ptr [rbp - 4]
+	pop	rbp
+	ret
+</code></pre>
+<pre><code class="language-x86asm" data-trim data-noescape>
+branchless:
+	...
+</code></pre>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Compiled with <code>-O1</code></p>
+<pre><code class="language-x86asm" data-trim data-noescape>
+branchful:
+	test	edi, edi
+	setg	al
+	movzx	eax, al
+	inc	eax
+	ret
+</code></pre>
+<span class="fragment">
+<pre><code class="language-x86asm" data-trim data-noescape>
+	branchless:
+	test	edi, edi
+	setg	al
+	movzx	eax, al
+	inc	eax
+	ret
+</code></pre>
+</span>
+	<p class="fragment">
+		So please just write readable, boring code.
+		Most of the time your compiler will optimise it for you reasonably well.
+	</p>
+</section>
+
+<section>
+	<h3>Do you sacrifice performance for safety?</h3>
+	<p>Yet another viewpoint:</p>
+	<p class="fragment">Performance and safety are not inherently antagonistic. Case in point:</p>
+	<ul>
+		<li class="fragment"><p>
+			GNAT Ada is in the same ballpark with C (performance-wise).
+		</p></li>
+		<li class="fragment"><p>
+			Rust is also on par and sometimes even faster than C,
+			while offering modern zero-cost abstractions,
+			modern strong typing with algebraic data types,
+			pattern matching and a very good package manager.
+		</p></li>
+		<li class="fragment"><p>
+			If you are ok with GC:
+			Recent Go versions (1.8) have sub-millisecond GC pauses in worst case,
+			of course at the cost of throughput.
+		</p></li>
+	</ul>
 </section>
 
 <section>
@@ -688,7 +885,7 @@ int main(void) {
 	<h3>7 steps to better performance</h3>
 	<ol>
 		<li class="fragment"><p>Do you know the computational complexity of your algorithms?</p></li>
-		<li class="fragment"><p>??? - Do you understand pointer aliasing?</p></li>
+		<li class="fragment"><p>Do you know the computational complexity of your data structures?</p></li>
 		<li class="fragment"><p>Do you have representative benchmarks?</p></li>
 		<li class="fragment"><p>Do you profile and use PGO?</p></li>
 		<li class="fragment"><p>Do you optimise for cache and memory access?</p></li>
@@ -707,6 +904,7 @@ int main(void) {
 	</ul>
 </section>
 
+<!--
 <section>
 	<h3>Further reading</h3>
 
@@ -717,13 +915,20 @@ int main(void) {
 		<a href="https://www.cs.utah.edu/~regehr/papers/overflow12.pdf">Full text.</a>
 	</p>
 
-	<!--
+	<p style="font-size: 60%">
+		Jacques-Louis Lions et. al.
+		Ariane 5: Flight 501 failure.
+		Report by the Inquiry Board.
+		<a href="http://sunnyday.mit.edu/accidents/Ariane5accidentreport.html">Full text.</a>
+	</p>
+
+
 	https://fsharpforfunandprofit.com/rop/
 	https://www.destroyallsoftware.com/talks/boundaries
 	https://www.destroyallsoftware.com/screencasts/catalog/functional-core-imperative-shell
-	-->
 
 </section>
+-->
 
 </div>
 </div>
