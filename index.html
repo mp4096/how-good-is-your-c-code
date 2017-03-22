@@ -661,19 +661,26 @@ int main(void) {
 
 <section>
 	<h3>Do you sacrifice performance for safety?</h3>
+	<p>This is the most important one.</p>
+	<p class="fragment">
+		Under <em>absolutely no circumstances</em> should you event think
+		about shaving the last microseconds from your code at the cost of unsafe techniques,
+		e.g. type punning, floating-point hacking,
+		sharing and mutating statically allocated memory etc.
+	</p>
 </section>
 
 <section>
 	<h3>8 steps to better maintainability</h3>
 	<ol>
 		<li class="fragment"><p>Do you know exactly why and where you need C?</p></li>
-		<li class="fragment"><p>Do you have a fully featured prototype written in a high-level language?</p></li>
+		<li class="fragment"><p>Do you have a full-fledged prototype written in a high-level language?</p></li>
 		<li class="fragment"><p>Do you have and enforce naming and style conventions?</p></li>
 		<li class="fragment"><p>Are you explicit about your assumptions?</p></li>
 		<li class="fragment"><p>Are your specification and documentation good?</p></li>
 		<li class="fragment"><p>Do you write tests and documentation before code?</p></li>
-		<li class="fragment"><p>Can you build and test in one step?</p></li>
-		<li class="fragment"><p>???</p></li>
+		<li class="fragment"><p>Can you perform all relevant devops tasks in one step?</p></li>
+		<li class="fragment"><p>Is your commit history rich and well-kept?</p></li>
 	</ol>
 </section>
 
